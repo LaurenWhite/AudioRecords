@@ -25,7 +25,6 @@ class RecordingViewController: UIViewController, AVAudioRecorderDelegate, UITabl
     var stopTimer: DurationTimer = DurationTimer()
     var isRecording: Bool = false
 
-
     // Player variables
     var audioPlayer: AVAudioPlayer?
     var audioEngine: AVAudioEngine?
@@ -44,12 +43,17 @@ class RecordingViewController: UIViewController, AVAudioRecorderDelegate, UITabl
         return fileURLs.count
     }
     
+    private func generateFilePath(fileName: String) -> URL {
+        return docDirectoryPath.appendingPathComponent(fileName)
+    }
+    
     
     // MARK - UI Outlets
     @IBOutlet var recordingsTableView: UITableView!
     @IBOutlet var recordStopButton: UIButton!
     @IBOutlet var playButton: UIButton!
     @IBOutlet var deleteButton: UIButton!
+    
     
     
     override func viewDidLoad() {
@@ -59,19 +63,30 @@ class RecordingViewController: UIViewController, AVAudioRecorderDelegate, UITabl
         recordingsTableView.dataSource = self
         
         configureUI()
-        recordingSession = AVAudioSession.sharedInstance()
-        do {
-            try recordingSession.setCategory(.playAndRecord, mode: .default)
-            try recordingSession.setActive(true)
-        } catch {
-            print("Error trying to set up recording session")
-        }
+        configureAudio()
     }
-    
+
     private func configureUI() {
         playButton.setImage(UIImage(named: "play"), for: .normal)
         deleteButton.setImage(UIImage(named: "trash"), for: .normal)
         configurePlaySettings()
+    }
+    
+    private func configureAudio() {
+        recordingSession = AVAudioSession.sharedInstance()
+        do {
+            try recordingSession.setCategory(.playAndRecord, mode: .default)
+            try recordingSession.setActive(true)
+            recordingSession.requestRecordPermission() { [unowned self] allowed in
+                DispatchQueue.main.async {
+                    if !allowed {
+                        print("Acccess to microphone denied")
+                    }
+                }
+            }
+        } catch {
+            print("Could not set up recording environment, will not be able to record")
+        }
     }
     
     private func configurePlaySettings() {
@@ -101,7 +116,7 @@ class RecordingViewController: UIViewController, AVAudioRecorderDelegate, UITabl
     @IBAction func playPauseButtonPressed(_ sender: Any) {
         guard playButton.isEnabled else { return }
         if(isPlaying) {
-            // stopPlayingRecording()
+            pauseRecording()
             playButton.setImage(UIImage(named: "play"), for: .normal)
             isPlaying = false
         } else {
@@ -116,8 +131,15 @@ class RecordingViewController: UIViewController, AVAudioRecorderDelegate, UITabl
     @IBAction func deleteButtonPressed(_ sender: Any) {
         guard deleteButton.isEnabled else { return }
         if let selectedIndexPath = recordingsTableView.indexPathForSelectedRow {
+            let filePath = generateFilePath(fileName: recordings[selectedIndexPath.row].fileName)
+            do {
+                try FileManager.default.removeItem(at: filePath)
+            } catch {
+                print("Could not delete file")
+            }
             database.removeRecording(at: selectedIndexPath.row)
             reloadTableViewData()
+            configurePlaySettings()
         }
     }
     
@@ -127,9 +149,10 @@ class RecordingViewController: UIViewController, AVAudioRecorderDelegate, UITabl
     
     func startRecording() {
         stopTimer.start()
-        let audioFilePath  = docDirectoryPath.appendingPathComponent("recording\(database.absCount).m4a")
+        let fileName = "recording\(database.absCount).m4a"
+        let audioFilePath = generateFilePath(fileName: fileName)
         print(audioFilePath.absoluteString)
-        newRecording = Recording(name: "name", time: 0, url: audioFilePath)
+        newRecording = Recording(name: "name", time: 0, fileName: fileName)
         
         let settings = [
             AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
@@ -150,18 +173,30 @@ class RecordingViewController: UIViewController, AVAudioRecorderDelegate, UITabl
     func stopRecording(success: Bool) {
         audioRecorder.stop()
         audioRecorder = nil
-        
+       
         stopTimer.stop()
+        
+        guard success else {
+            print("Failure to capture recording")
+            newRecording = nil
+            return
+        }
         if let duration = stopTimer.duration {
             newRecording?.time = duration
         }
         nameRecording()
     }
     
+    func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
+        if !flag {
+            stopRecording(success: false)
+        }
+    }
+    
     func nameRecording() {
         let ac = UIAlertController(title: "Enter name for recording", message: nil, preferredStyle: .alert)
         ac.addTextField()
-        ac.textFields?[0].placeholder = "Recording #\(count)"
+        ac.textFields?[0].placeholder = "Recording #\(database.absCount + 1)"
         
         let submitAction = UIAlertAction(title: "Submit", style: .default) { [unowned ac] _ in
             let submission = ac.textFields![0]
@@ -175,7 +210,8 @@ class RecordingViewController: UIViewController, AVAudioRecorderDelegate, UITabl
         }
         let cancelAction = UIAlertAction(title: "Cancel", style: .destructive) { _ in
             do {
-                try FileManager.default.removeItem(at: self.newRecording!.url)
+                let filePath = self.generateFilePath(fileName: self.newRecording!.fileName)
+                try FileManager.default.removeItem(at: filePath)
             } catch {
                 print("Could not delete file")
             }
@@ -197,7 +233,8 @@ class RecordingViewController: UIViewController, AVAudioRecorderDelegate, UITabl
             audioEngine.attach(audioPlayerNode)
             audioPlayerNode.stop()
             
-            let audioFile = try AVAudioFile(forReading: recordings[index].url)
+            let filePath = generateFilePath(fileName: recordings[index].fileName)
+            let audioFile = try AVAudioFile(forReading: filePath)
             audioEngine.connect(audioPlayerNode, to: audioEngine.outputNode, format: audioFile.processingFormat)
             audioPlayerNode.scheduleFile(audioFile, at: nil)
             
@@ -214,7 +251,9 @@ class RecordingViewController: UIViewController, AVAudioRecorderDelegate, UITabl
         }
     }
     
-    
+    func pauseRecording() {
+        audioPlayerNode?.pause()
+    }
     
     
     

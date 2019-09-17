@@ -17,7 +17,7 @@ private let absCountKey = "abs.count.key"
 struct Recording {
     var name: String
     var time: Double
-    let url: URL
+    let fileName: String
 }
 
 class RecordingsDatabase {
@@ -53,7 +53,7 @@ class RecordingsDatabase {
             let recordingData: [String:Any] = [
                 "name" : recording.name,
                 "time" : recording.time,
-                "url" : recording.url.path
+                "fileName" : recording.fileName
             ]
             data.append(recordingData)
         }
@@ -70,9 +70,8 @@ class RecordingsDatabase {
         for recordingData in savedData {
             if let recordingName = recordingData["name"] as? String,
                 let recordingTime = recordingData["time"] as? Double,
-                let recordingURL = recordingData["url"] as? String {
-                let url = URL(fileURLWithPath: recordingURL)
-                array.append(Recording(name: recordingName, time: recordingTime, url: url))
+                let recordingFileName = recordingData["fileName"] as? String {
+                array.append(Recording(name: recordingName, time: recordingTime, fileName: recordingFileName))
             }
         }
         return array
