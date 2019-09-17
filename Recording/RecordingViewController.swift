@@ -11,6 +11,8 @@ import UIKit
 
 class RecordingViewController: UIViewController, AVAudioRecorderDelegate, UITableViewDelegate, UITableViewDataSource {
 
+    // MARK - Variables
+    
     // Database variables
     let database = RecordingsDatabase()
     var recordings: [Recording] { return database.getRecordings() }
@@ -29,6 +31,19 @@ class RecordingViewController: UIViewController, AVAudioRecorderDelegate, UITabl
     var audioEngine: AVAudioEngine?
     var audioPlayerNode: AVAudioPlayerNode?
     var isPlaying: Bool = false
+    
+    // File Manager Convenience variables
+    var docDirectoryPath: URL {
+        let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+        let documentsDirectory = paths[0]
+        return documentsDirectory
+    }
+    
+    var numberOfDocumentsInDirectory: Int {
+        let fileURLs = try! FileManager.default.contentsOfDirectory(at: docDirectoryPath, includingPropertiesForKeys: nil)
+        return fileURLs.count
+    }
+    
     
     // MARK - UI Outlets
     @IBOutlet var recordingsTableView: UITableView!
@@ -53,17 +68,6 @@ class RecordingViewController: UIViewController, AVAudioRecorderDelegate, UITabl
         }
     }
     
-    var docDirectoryPath: URL {
-        let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
-        let documentsDirectory = paths[0]
-        return documentsDirectory
-    }
-    
-    var numberOfDocumentsInDirectory: Int {
-        let fileURLs = try! FileManager.default.contentsOfDirectory(at: docDirectoryPath, includingPropertiesForKeys: nil)
-        return fileURLs.count
-    }
-    
     private func configureUI() {
         playButton.setImage(UIImage(named: "play"), for: .normal)
         deleteButton.setImage(UIImage(named: "trash"), for: .normal)
@@ -77,7 +81,7 @@ class RecordingViewController: UIViewController, AVAudioRecorderDelegate, UITabl
     }
     
     
-    // MARK - Buttons actions
+    // MARK - Button actions
     
     @IBAction func recordStopButtonPressed(_ sender: Any) {
         if(isRecording) {

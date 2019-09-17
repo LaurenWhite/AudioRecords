@@ -36,17 +36,18 @@ class RecordingsDatabase {
     
     func addRecording(newRecording: Recording) {
         recordings.append(newRecording)
-        saveRecordings(contentsOf: recordings)
         absoluteCount += 1
+        saveRecordings()
+        saveAbsoluteCount()
     }
     
     func removeRecording(at index: Int) {
         guard index > 0, index < recordings.count else { return }
         recordings.remove(at: index)
-        saveRecordings(contentsOf: recordings)
+        saveRecordings()
     }
     
-    func saveRecordings(contentsOf recordings: [Recording]) {
+    func saveRecordings() {
         var data: [[String:Any]] = []
         for recording in recordings {
             let recordingData: [String:Any] = [
@@ -56,7 +57,7 @@ class RecordingsDatabase {
             ]
             data.append(recordingData)
         }
-        UserDefaults.standard.set([:], forKey: recordingKey)
+        UserDefaults.standard.set(data, forKey: recordingKey)
     }
     
     func saveAbsoluteCount() {
@@ -78,10 +79,6 @@ class RecordingsDatabase {
     }
     
     static func loadAbsoluteCount() -> Int {
-        if let savedData = UserDefaults.standard.integer(forKey: absCountKey) {
-            return savedData
-        }
-        return 0
+        return UserDefaults.standard.integer(forKey: absCountKey)
     }
-    
 }
