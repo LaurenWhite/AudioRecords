@@ -30,6 +30,7 @@ class RecordingViewController: UIViewController, AVAudioRecorderDelegate, UITabl
     var audioEngine: AVAudioEngine?
     var audioPlayerNode: AVAudioPlayerNode?
     var isPlaying: Bool = false
+    var isPaused: Bool = false
     
     // File Manager Convenience variables
     class var docDirectoryPath: URL {
@@ -99,12 +100,16 @@ class RecordingViewController: UIViewController, AVAudioRecorderDelegate, UITabl
     @IBAction func playPauseButtonPressed(_ sender: Any) {
         guard playButton.isEnabled else { return }
         if(isPlaying) {
-            pauseRecording()
+            pausePlayback()
             playButton.setImage(UIImage(named: "play"), for: .normal)
             isPlaying = false
         } else {
             if let selectedIndexPath = recordingsTableView.indexPathForSelectedRow {
-                playRecording(index: selectedIndexPath.row)
+                if isPaused {
+                    resumePlayback()
+                } else {
+                    startPlayback(index: selectedIndexPath.row)
+                }
                 playButton.setImage(UIImage(named: "pause"), for: .normal)
                 isPlaying = true
             }

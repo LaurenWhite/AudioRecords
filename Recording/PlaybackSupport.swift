@@ -13,10 +13,6 @@ import UIKit
 
 extension RecordingViewController {
     
-    
-    
-    
-    
     func nameRecording() {
         let ac = UIAlertController(title: "Enter name for recording", message: nil, preferredStyle: .alert)
         ac.addTextField()
@@ -47,7 +43,7 @@ extension RecordingViewController {
         present(ac, animated: true)
     }
     
-    func playRecording(index: Int) {
+    func startPlayback(index: Int) {
         do {
             audioEngine = AVAudioEngine()
             audioPlayerNode = AVAudioPlayerNode()
@@ -60,7 +56,12 @@ extension RecordingViewController {
             let filePath = RecordingViewController.generateFilePath(fileName: recordings[index].fileName)
             let audioFile = try AVAudioFile(forReading: filePath)
             audioEngine.connect(audioPlayerNode, to: audioEngine.outputNode, format: audioFile.processingFormat)
-            audioPlayerNode.scheduleFile(audioFile, at: nil)
+            audioPlayerNode.scheduleFile(audioFile, at: nil, completionHandler: {
+                print("Finished!")
+                DispatchQueue.main.async {
+                    self.finishPlayback()
+                }
+            })
             
             do {
                 try audioEngine.start()
@@ -75,7 +76,19 @@ extension RecordingViewController {
         }
     }
     
-    func pauseRecording() {
+    func resumePlayback() {
+        audioPlayerNode?.play()
+        isPaused = false
+    }
+    
+    func pausePlayback() {
         audioPlayerNode?.pause()
+        isPaused = true
+    }
+    
+    func finishPlayback() {
+        isPaused = false
+        isPlaying = false
+        playButton.setImage(UIImage(named: "play"), for: .normal)
     }
 }
