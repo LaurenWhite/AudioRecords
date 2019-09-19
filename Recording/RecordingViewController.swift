@@ -98,7 +98,6 @@ class RecordingViewController: UIViewController, AVAudioRecorderDelegate, UITabl
     }
     
     @IBAction func playPauseButtonPressed(_ sender: Any) {
-        guard playButton.isEnabled else { return }
         if(isPlaying) {
             pausePlayback()
             playButton.setImage(UIImage(named: "play"), for: .normal)
@@ -117,7 +116,6 @@ class RecordingViewController: UIViewController, AVAudioRecorderDelegate, UITabl
     }
     
     @IBAction func deleteButtonPressed(_ sender: Any) {
-        guard deleteButton.isEnabled else { return }
         if let selectedIndexPath = recordingsTableView.indexPathForSelectedRow {
             let filePath = RecordingViewController.generateFilePath(fileName: recordings[selectedIndexPath.row].fileName)
             do {
@@ -146,6 +144,9 @@ class RecordingViewController: UIViewController, AVAudioRecorderDelegate, UITabl
     }
     
     internal func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        if(isPlaying || isPaused) {
+            finishPlayback()
+        }
         configurePlayUISettings()
     }
     
