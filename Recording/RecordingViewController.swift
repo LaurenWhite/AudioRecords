@@ -74,6 +74,7 @@ class RecordingViewController: UIViewController, AVAudioRecorderDelegate, UITabl
     }
     
     func configurePlayUISettings() {
+        // Enable/Disable play and delete buttons for recordings based on certain conditions.
         let enable = !isRecording && recordingsTableView.indexPathForSelectedRow != nil
         playButton.isEnabled = enable
         deleteButton.isEnabled = enable
@@ -84,12 +85,12 @@ class RecordingViewController: UIViewController, AVAudioRecorderDelegate, UITabl
     
     @IBAction func recordStopButtonPressed(_ sender: Any) {
         if(isRecording) {
-            // If already recording, then stop recording
+            // If already recording, then stop recording.
             recordStopButton.setImage(UIImage(named: "Record"), for: .normal)
             isRecording = false
             stopRecording(success: true)
         } else {
-            // If not recording, then start recording
+            // If not recording, then start recording.
             recordStopButton.setImage(UIImage(named: "Stop"), for: .normal)
             isRecording = true
             startRecording()
@@ -99,10 +100,12 @@ class RecordingViewController: UIViewController, AVAudioRecorderDelegate, UITabl
     
     @IBAction func playPauseButtonPressed(_ sender: Any) {
         if(isPlaying) {
+            // If already playing, pause.
             pausePlayback()
             playButton.setImage(UIImage(named: "play"), for: .normal)
             isPlaying = false
         } else {
+            // If not playing, start playing or resume playing.
             if let selectedIndexPath = recordingsTableView.indexPathForSelectedRow {
                 if isPaused {
                     resumePlayback()
@@ -116,17 +119,19 @@ class RecordingViewController: UIViewController, AVAudioRecorderDelegate, UITabl
     }
     
     @IBAction func deleteButtonPressed(_ sender: Any) {
-        if let selectedIndexPath = recordingsTableView.indexPathForSelectedRow {
-            let filePath = RecordingViewController.generateFilePath(fileName: recordings[selectedIndexPath.row].fileName)
-            do {
-                try FileManager.default.removeItem(at: filePath)
-            } catch {
-                print("Could not delete file")
-            }
-            database.removeRecording(at: selectedIndexPath.row)
-            reloadTableViewData()
-            configurePlayUISettings()
+        // Only attempt to delete if a file is selected in the table view.
+        guard let selectedIndexPath = recordingsTableView.indexPathForSelectedRow else { return }
+        let filePath = RecordingViewController.generateFilePath(fileName: recordings[selectedIndexPath.row].fileName)
+        do {
+            // Remove recording file from documents.
+            try FileManager.default.removeItem(at: filePath)
+        } catch {
+            print("Could not delete file")
         }
+        // Remove Recording struct from database.
+        database.removeRecording(at: selectedIndexPath.row)
+        reloadTableViewData()
+        configurePlayUISettings()
     }
     
     // MARK - Table View Functions
@@ -145,6 +150,7 @@ class RecordingViewController: UIViewController, AVAudioRecorderDelegate, UITabl
     
     internal func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         if(isPlaying || isPaused) {
+            // If a new recording is selected while a recording is already being played, finish/abandon that file
             finishPlayback()
         }
         configurePlayUISettings()

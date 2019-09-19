@@ -26,7 +26,6 @@ extension RecordingViewController {
             let audioFile = try AVAudioFile(forReading: filePath)
             audioEngine.connect(audioPlayerNode, to: audioEngine.outputNode, format: audioFile.processingFormat)
             audioPlayerNode.scheduleFile(audioFile, at: nil, completionHandler: {
-                print("Finished!")
                 DispatchQueue.main.async {
                     self.finishPlayback()
                 }
